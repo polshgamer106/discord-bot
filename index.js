@@ -14,8 +14,7 @@ const {
   createAudioPlayer,
   createAudioResource,
   AudioPlayerStatus,
-  NoSubscriberBehavior,
-  StreamType
+  NoSubscriberBehavior
 } = require('@discordjs/voice');
 
 const ytdl = require('@distube/ytdl-core');
@@ -86,10 +85,8 @@ client.on('interactionCreate', async interaction => {
         highWaterMark: 1 << 25
       });
 
-      // 🔴 KLUCZOWA POPRAWKA
-      const resource = createAudioResource(stream, {
-        inputType: StreamType.Arbitrary
-      });
+      // 🔴 POPRAWKA: BEZ StreamType.Arbitrary
+      const resource = createAudioResource(stream);
 
       const player = createAudioPlayer({
         behaviors: {
@@ -101,11 +98,13 @@ client.on('interactionCreate', async interaction => {
       player.play(resource);
 
       player.on(AudioPlayerStatus.Idle, () => {
+        console.log('Koniec utworu');
         connection.destroy();
       });
 
       player.on('error', error => {
         console.error('PLAYER ERROR:', error);
+        connection.destroy();
       });
 
       await interaction.followUp('▶️ Odtwarzam muzykę');

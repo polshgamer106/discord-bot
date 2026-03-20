@@ -62,37 +62,41 @@ client.on('interactionCreate', async interaction => {
 
     await interaction.reply('Szukam...');
 
-    const result = await play.search(query, { limit: 1 });
+    try {
+      const result = await play.search(query, { limit: 1 });
 
-if (!result.length) {
-  return interaction.followUp('Nie znaleziono');
-}
+      if (!result.length) {
+        return interaction.followUp('Nie znaleziono');
+      }
 
-const video = result[0];
-    
+      const video = result[0];
 
-    if (!video) {
-      return interaction.followUp('Nie znaleziono');
+      // 🔴 FIX: zabezpieczenie streamu
+      const stream = await play.stream(video.url, {
+        discordPlayerCompatibility: true
+      });
+
+      const player = createAudioPlayer();
+
+      const connection = joinVoiceChannel({
+        channelId: voiceChannel.id,
+        guildId: interaction.guild.id,
+        adapterCreator: interaction.guild.voiceAdapterCreator
+      });
+
+      const resource = createAudioResource(stream.stream, {
+        inputType: stream.type
+      });
+
+      player.play(resource);
+      connection.subscribe(player);
+
+      await interaction.followUp(`▶️ Gram: ${video.title}`);
+
+    } catch (error) {
+      console.error(error);
+      await interaction.followUp('❌ Błąd podczas odtwarzania');
     }
-
-    const stream = await play.stream(video.url);
-
-    const player = createAudioPlayer();
-
-    const connection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: interaction.guild.id,
-      adapterCreator: interaction.guild.voiceAdapterCreator
-    });
-
-    const resource = createAudioResource(stream.stream, {
-      inputType: stream.type
-    });
-
-    player.play(resource);
-    connection.subscribe(player);
-
-    await interaction.followUp(`▶️ Gram: ${video.title}`);
   }
 });
 

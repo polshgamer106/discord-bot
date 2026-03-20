@@ -1,13 +1,37 @@
-{
-  "name": "bot",
-  "version": "1.0.0",
-  "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "discord.js": "^14.0.0",
-    "@discordjs/voice": "^0.16.0",
-    "play-dl": "^1.9.6"
+if (interaction.commandName === 'play') {
+  const query = interaction.options.getString('query');
+
+  const voiceChannel = interaction.member.voice.channel;
+
+  if (!voiceChannel) {
+    return interaction.reply('Wejdź na kanał głosowy');
   }
+
+  await interaction.reply('Szukam...');
+
+  const result = await play.search(query, { limit: 1 });
+
+  if (!result.length) {
+    return interaction.followUp('Nie znaleziono');
+  }
+
+  const video = result[0];
+  const stream = await play.stream(video.url);
+
+  const player = createAudioPlayer();
+
+  const connection = joinVoiceChannel({
+    channelId: voiceChannel.id,
+    guildId: interaction.guild.id,
+    adapterCreator: interaction.guild.voiceAdapterCreator
+  });
+
+  const resource = createAudioResource(stream.stream, {
+    inputType: stream.type
+  });
+
+  player.play(resource);
+  connection.subscribe(player);
+
+  await interaction.followUp(`▶️ Gram: ${video.title}`);
 }

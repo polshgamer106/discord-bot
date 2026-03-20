@@ -1,6 +1,3 @@
-const ffmpegPath = require('ffmpeg-static');
-process.env.FFMPEG_PATH = ffmpegPath;
-
 const {
   Client,
   GatewayIntentBits,
@@ -14,7 +11,8 @@ const {
   createAudioPlayer,
   createAudioResource,
   AudioPlayerStatus,
-  NoSubscriberBehavior
+  NoSubscriberBehavior,
+  StreamType
 } = require('@discordjs/voice');
 
 const ytdl = require('@distube/ytdl-core');
@@ -68,9 +66,7 @@ client.on('interactionCreate', async interaction => {
     await interaction.reply('Łączę...');
 
     try {
-      const url = query;
-
-      if (!ytdl.validateURL(url)) {
+      if (!ytdl.validateURL(query)) {
         return interaction.followUp('Podaj poprawny link YouTube');
       }
 
@@ -80,13 +76,14 @@ client.on('interactionCreate', async interaction => {
         adapterCreator: interaction.guild.voiceAdapterCreator
       });
 
-      const stream = ytdl(url, {
+      const stream = ytdl(query, {
         filter: 'audioonly',
         highWaterMark: 1 << 25
       });
 
-      // 🔴 POPRAWKA: BEZ StreamType.Arbitrary
-      const resource = createAudioResource(stream);
+      const resource = createAudioResource(stream, {
+        inputType: StreamType.Arbitrary
+      });
 
       const player = createAudioPlayer({
         behaviors: {
@@ -98,12 +95,11 @@ client.on('interactionCreate', async interaction => {
       player.play(resource);
 
       player.on(AudioPlayerStatus.Idle, () => {
-        console.log('Koniec utworu');
         connection.destroy();
       });
 
-      player.on('error', error => {
-        console.error('PLAYER ERROR:', error);
+      player.on('error', err => {
+        console.error('PLAYER ERROR:', err);
         connection.destroy();
       });
 

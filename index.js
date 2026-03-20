@@ -14,11 +14,14 @@ const client = new Client({
   ]
 });
 
-// prosta baza XP (znika po restarcie)
+// 🔧 WSTAW ID SERWERA (z Discord)
+const GUILD_ID = '1476998304624672810';
+
+// pamięć XP (na razie tymczasowa)
 const xp = {};
 const levels = {};
 
-// poziom
+// funkcja poziomu
 function getLevel(userXp) {
   return Math.floor(0.1 * Math.sqrt(userXp));
 }
@@ -40,17 +43,17 @@ client.once('ready', async () => {
   console.log('Bot działa');
 
   try {
+    // ✅ KOMENDY TYLKO NA SERWERZE (bez duplikatów)
     await rest.put(
-      Routes.applicationGuildCommands(client.user.id, '1476998304624672810'),
+      Routes.applicationGuildCommands(client.user.id, GUILD_ID),
       { body: commands }
     );
-    console.log('Komendy zarejestrowane');
   } catch (error) {
     console.error(error);
   }
 });
 
-// XP za wiadomości
+// XP za pisanie
 client.on('messageCreate', message => {
   if (message.author.bot) return;
 

@@ -14,7 +14,7 @@ const {
   NoSubscriberBehavior
 } = require('@discordjs/voice');
 
-const play = require('play-dl');
+const ytdl = require('@distube/ytdl-core');
 
 // 🔧 UZUPEŁNIJ
 const TOKEN = process.env.TOKEN;
@@ -32,7 +32,7 @@ const commands = [
     .setDescription('Odtwarza muzykę')
     .addStringOption(option =>
       option.setName('query')
-        .setDescription('Nazwa piosenki')
+        .setDescription('Link YouTube')
         .setRequired(true)
     )
 ].map(cmd => cmd.toJSON());
@@ -62,16 +62,14 @@ client.on('interactionCreate', async interaction => {
       return interaction.reply('Wejdź na kanał głosowy');
     }
 
-    await interaction.reply('Szukam...');
+    await interaction.reply('Łączę...');
 
     try {
-      const result = await play.search(query, { limit: 1 });
+      const url = query;
 
-      if (!result.length) {
-        return interaction.followUp('Nie znaleziono');
+      if (!ytdl.validateURL(url)) {
+        return interaction.followUp('Podaj poprawny link YouTube');
       }
-
-      const video = result[0];
 
       const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
@@ -79,11 +77,12 @@ client.on('interactionCreate', async interaction => {
         adapterCreator: interaction.guild.voiceAdapterCreator
       });
 
-      const stream = await play.stream(video.url);
-
-      const resource = createAudioResource(stream.stream, {
-        inputType: stream.type
+      const stream = ytdl(url, {
+        filter: 'audioonly',
+        highWaterMark: 1 << 25
       });
+
+      const resource = createAudioResource(stream);
 
       const player = createAudioPlayer({
         behaviors: {
@@ -98,7 +97,7 @@ client.on('interactionCreate', async interaction => {
         connection.destroy();
       });
 
-      await interaction.followUp(`▶️ Gram: ${video.title}`);
+      await interaction.followUp('▶️ Odtwarzam muzykę');
 
     } catch (error) {
       console.error('BŁĄD:', error);

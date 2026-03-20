@@ -1,36 +1,82 @@
-const { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } = require('discord.js');
+const { 
+  Client, 
+  GatewayIntentBits, 
+  REST, 
+  Routes, 
+  SlashCommandBuilder 
+} = require('discord.js');
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
+// prosta baza XP w pamięci (resetuje się po restarcie)
+const xp = {};
+const levels = {};
+
+// funkcja poziomu
+function getLevel(userXp) {
+  return Math.floor(0.1 * Math.sqrt(userXp));
+}
+
+// komendy
 const commands = [
   new SlashCommandBuilder()
     .setName('ping')
-    .setDescription('Sprawdza czy bot działa')
-    .toJSON()
-];
+    .setDescription('Sprawdza czy bot działa'),
+
+  new SlashCommandBuilder()
+    .setName('level')
+    .setDescription('Sprawdza twój poziom')
+].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
 client.once('ready', async () => {
   console.log('Bot działa');
 
-  try {
-    await rest.put(
-      Routes.applicationCommands(client.user.id),
-      { body: commands }
-    );
-  } catch (error) {
-    console.error(error);
+  await rest.put(
+    Routes.applicationCommands(client.user.id),
+    { body: commands }
+  );
+});
+
+// XP za wiadomości
+client.on('messageCreate', message => {
+  if (message.author.bot) return;
+
+  const userId = message.author.id;
+
+  if (!xp[userId]) xp[userId] = 0;
+
+  xp[userId] += 5;
+
+  const newLevel = getLevel(xp[userId]);
+
+  if (levels[userId] !== newLevel) {
+    levels[userId] = newLevel;
+    message.channel.send(`${message.author} awansował na poziom ${newLevel}!`);
   }
 });
 
+// komendy
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === 'ping') {
     await interaction.reply('Pong!');
+  }
+
+  if (interaction.commandName === 'level') {
+    const userId = interaction.user.id;
+    const userXp = xp[userId] || 0;
+    const userLevel = getLevel(userXp);
+
+    await interaction.reply(`Masz ${userXp} XP i poziom ${userLevel}`);
   }
 });
 

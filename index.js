@@ -13,7 +13,6 @@ const {
 } = require('@discordjs/voice');
 
 const play = require('play-dl');
-const ytSearch = require('@distube/yt-search');
 
 // 🔧 UZUPEŁNIJ
 const TOKEN = process.env.TOKEN;
@@ -63,8 +62,14 @@ client.on('interactionCreate', async interaction => {
 
     await interaction.reply('Szukam...');
 
-    const result = await ytSearch(query);
-    const video = result.videos[0];
+    const result = await play.search(query, { limit: 1 });
+
+if (!result.length) {
+  return interaction.followUp('Nie znaleziono');
+}
+
+const video = result[0];
+    
 
     if (!video) {
       return interaction.followUp('Nie znaleziono');

@@ -14,14 +14,14 @@ const client = new Client({
   ]
 });
 
-// 🔧 WSTAW ID SERWERA (z Discord)
+// 🔧 WSTAW SWOJE ID SERWERA
 const GUILD_ID = '1476998304624672810';
 
-// pamięć XP (na razie tymczasowa)
+// XP (tymczasowe)
 const xp = {};
 const levels = {};
 
-// funkcja poziomu
+// poziom
 function getLevel(userXp) {
   return Math.floor(0.1 * Math.sqrt(userXp));
 }
@@ -43,17 +43,18 @@ client.once('ready', async () => {
   console.log('Bot działa');
 
   try {
-    // ✅ KOMENDY TYLKO NA SERWERZE (bez duplikatów)
+    // ❗ NAJWAŻNIEJSZE — tylko komendy serwerowe
     await rest.put(
       Routes.applicationGuildCommands(client.user.id, GUILD_ID),
       { body: commands }
     );
+
   } catch (error) {
     console.error(error);
   }
 });
 
-// XP za pisanie
+// XP za wiadomości
 client.on('messageCreate', message => {
   if (message.author.bot) return;
 

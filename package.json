@@ -8,6 +8,7 @@
   "dependencies": {
     "discord.js": "^14.0.0",
     "@discordjs/voice": "^0.16.0",
-    "@distube/ytdl-core": "^4.16.0"
+    "@distube/ytdl-core": "^4.16.0",
+    "ffmpeg-static": "^5.2.0"
   }
 }

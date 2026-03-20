@@ -1,120 +1,57 @@
-const { 
-  Client, 
-  GatewayIntentBits, 
-  REST, 
-  Routes, 
-  SlashCommandBuilder 
+const {
+  Client,
+  GatewayIntentBits,
+  REST,
+  Routes,
+  SlashCommandBuilder
 } = require('discord.js');
 
-const { 
-  joinVoiceChannel, 
-  createAudioPlayer, 
-  createAudioResource 
+const {
+  joinVoiceChannel,
+  createAudioPlayer,
+  createAudioResource
 } = require('@discordjs/voice');
 
 const play = require('play-dl');
 const ytSearch = require('@distube/yt-search');
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
 });
 
-// 🔧 WSTAW ID SERWERA
+// 🔧 UZUPEŁNIJ
+const TOKEN = process.env.TOKEN;
+const CLIENT_ID = '1484585251408842852';
 const GUILD_ID = '1476998304624672810';
-
-// XP (proste, tymczasowe)
-const xp = {};
-const levels = {};
-
-function getLevel(userXp) {
-  return Math.floor(0.1 * Math.sqrt(userXp));
-}
 
 // KOMENDY
 const commands = [
-  new SlashCommandBuilder()
-    .setName('ping')
-    .setDescription('Sprawdza czy bot działa'),
-
-  new SlashCommandBuilder()
-    .setName('level')
-    .setDescription('Sprawdza poziom'),
-
   new SlashCommandBuilder()
     .setName('play')
     .setDescription('Odtwarza muzykę')
     .addStringOption(option =>
       option.setName('query')
-        .setDescription('Nazwa piosenki')
+        .setDescription('Nazwa lub link')
         .setRequired(true)
     )
 ].map(cmd => cmd.toJSON());
 
-const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+// REJESTRACJA KOMEND
+const rest = new REST({ version: '10' }).setToken(TOKEN);
 
-// READY
 client.once('ready', async () => {
   console.log('Bot działa');
 
-  try {
-    // usuń globalne komendy (żeby nie było duplikatów)
-    await rest.put(
-      Routes.applicationCommands(client.user.id),
-      { body: [] }
-    );
-
-    // ustaw komendy tylko na serwerze
-    await rest.put(
-      Routes.applicationGuildCommands(client.user.id, GUILD_ID),
-      { body: commands }
-    );
-
-  } catch (error) {
-    console.error(error);
-  }
+  await rest.put(
+    Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+    { body: commands }
+  );
 });
 
-// XP SYSTEM
-client.on('messageCreate', message => {
-  if (message.author.bot) return;
-
-  const userId = message.author.id;
-
-  if (!xp[userId]) xp[userId] = 0;
-
-  xp[userId] += 5;
-
-  const newLevel = getLevel(xp[userId]);
-
-  if (levels[userId] !== newLevel) {
-    levels[userId] = newLevel;
-    message.channel.send(`${message.author} awansował na poziom ${newLevel}`);
-  }
-});
-
-// KOMENDY
+// KOMENDA PLAY
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
-  // PING
-  if (interaction.commandName === 'ping') {
-    await interaction.reply('Pong!');
-  }
-
-  // LEVEL
-  if (interaction.commandName === 'level') {
-    const userId = interaction.user.id;
-    const userXp = xp[userId] || 0;
-    const userLevel = getLevel(userXp);
-
-    await interaction.reply(`XP: ${userXp}, poziom: ${userLevel}`);
-  }
-
-  // MUZYKA
   if (interaction.commandName === 'play') {
     const query = interaction.options.getString('query');
 
@@ -126,11 +63,11 @@ client.on('interactionCreate', async interaction => {
 
     await interaction.reply('Szukam...');
 
-    let result = await ytSearch(query);
-    let video = result.videos[0];
+    const result = await ytSearch(query);
+    const video = result.videos[0];
 
     if (!video) {
-      return interaction.followUp('Nie znaleziono utworu');
+      return interaction.followUp('Nie znaleziono');
     }
 
     const stream = await play.stream(video.url);
@@ -154,4 +91,4 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
-client.login(process.env.TOKEN);
+client.login(TOKEN);

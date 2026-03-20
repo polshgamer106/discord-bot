@@ -1,3 +1,6 @@
+const ffmpegPath = require('ffmpeg-static');
+process.env.FFMPEG_PATH = ffmpegPath;
+
 const {
   Client,
   GatewayIntentBits,
@@ -90,8 +93,8 @@ client.on('interactionCreate', async interaction => {
         }
       });
 
-      player.play(resource);
       connection.subscribe(player);
+      player.play(resource);
 
       player.on(AudioPlayerStatus.Idle, () => {
         connection.destroy();

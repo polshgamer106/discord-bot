@@ -9,7 +9,9 @@ const {
 const {
   joinVoiceChannel,
   createAudioPlayer,
-  createAudioResource
+  createAudioResource,
+  AudioPlayerStatus,
+  NoSubscriberBehavior
 } = require('@discordjs/voice');
 
 const play = require('play-dl');
@@ -71,31 +73,36 @@ client.on('interactionCreate', async interaction => {
 
       const video = result[0];
 
-      // 🔴 FIX: zabezpieczenie streamu
-      const stream = await play.stream(video.url, {
-        discordPlayerCompatibility: true
-      });
-
-      const player = createAudioPlayer();
-
       const connection = joinVoiceChannel({
         channelId: voiceChannel.id,
         guildId: interaction.guild.id,
         adapterCreator: interaction.guild.voiceAdapterCreator
       });
 
+      const stream = await play.stream(video.url);
+
       const resource = createAudioResource(stream.stream, {
         inputType: stream.type
+      });
+
+      const player = createAudioPlayer({
+        behaviors: {
+          noSubscriber: NoSubscriberBehavior.Play
+        }
       });
 
       player.play(resource);
       connection.subscribe(player);
 
+      player.on(AudioPlayerStatus.Idle, () => {
+        connection.destroy();
+      });
+
       await interaction.followUp(`▶️ Gram: ${video.title}`);
 
     } catch (error) {
-      console.error(error);
-      await interaction.followUp('❌ Błąd podczas odtwarzania');
+      console.error('BŁĄD:', error);
+      await interaction.followUp(`❌ Błąd: ${error.message}`);
     }
   }
 });

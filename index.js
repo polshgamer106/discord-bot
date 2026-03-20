@@ -9,57 +9,46 @@ const {
 const {
   joinVoiceChannel,
   createAudioPlayer,
-  createAudioResource,
-  AudioPlayerStatus
+  createAudioResource
 } = require('@discordjs/voice');
 
 const play = require('play-dl');
 const ytSearch = require('@distube/yt-search');
 
-// 🔧 KONFIGURACJA
+// 🔧 UZUPEŁNIJ
 const TOKEN = process.env.TOKEN;
 const CLIENT_ID = '1484585251408842852';
 const GUILD_ID = '1476998304624672810';
 
-// 🔧 KLIENT
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildVoiceStates
-  ]
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates]
 });
 
-// 🔧 KOMENDY
+// KOMENDY
 const commands = [
   new SlashCommandBuilder()
     .setName('play')
     .setDescription('Odtwarza muzykę')
     .addStringOption(option =>
       option.setName('query')
-        .setDescription('Nazwa piosenki lub link')
+        .setDescription('Nazwa piosenki')
         .setRequired(true)
     )
 ].map(cmd => cmd.toJSON());
 
-// 🔧 REJESTRACJA KOMEND
+// REJESTRACJA
 const rest = new REST({ version: '10' }).setToken(TOKEN);
 
 client.once('ready', async () => {
-  console.log(`Bot zalogowany jako ${client.user.tag}`);
+  console.log('Bot działa');
 
-  try {
-    await rest.put(
-      Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
-      { body: commands }
-    );
-
-    console.log('Komendy zostały zarejestrowane');
-  } catch (err) {
-    console.error('Błąd rejestracji komend:', err);
-  }
+  await rest.put(
+    Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
+    { body: commands }
+  );
 });
 
-// 🔧 PLAY
+// PLAY
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -69,50 +58,37 @@ client.on('interactionCreate', async interaction => {
     const voiceChannel = interaction.member.voice.channel;
 
     if (!voiceChannel) {
-      return interaction.reply({
-        content: 'Musisz być na kanale głosowym',
-        ephemeral: true
-      });
+      return interaction.reply('Wejdź na kanał głosowy');
     }
 
-    await interaction.reply('🔎 Szukam...');
+    await interaction.reply('Szukam...');
 
-    try {
-      const result = await ytSearch(query);
-      const video = result.videos[0];
+    const result = await ytSearch(query);
+    const video = result.videos[0];
 
-      if (!video) {
-        return interaction.followUp('❌ Nie znaleziono');
-      }
-
-      const stream = await play.stream(video.url);
-
-      const player = createAudioPlayer();
-
-      const connection = joinVoiceChannel({
-        channelId: voiceChannel.id,
-        guildId: interaction.guild.id,
-        adapterCreator: interaction.guild.voiceAdapterCreator
-      });
-
-      const resource = createAudioResource(stream.stream, {
-        inputType: stream.type
-      });
-
-      player.play(resource);
-      connection.subscribe(player);
-
-      player.on(AudioPlayerStatus.Idle, () => {
-        connection.destroy();
-      });
-
-      await interaction.followUp(`▶️ Teraz gra: **${video.title}**`);
-    } catch (err) {
-      console.error(err);
-      await interaction.followUp('❌ Błąd podczas odtwarzania');
+    if (!video) {
+      return interaction.followUp('Nie znaleziono');
     }
+
+    const stream = await play.stream(video.url);
+
+    const player = createAudioPlayer();
+
+    const connection = joinVoiceChannel({
+      channelId: voiceChannel.id,
+      guildId: interaction.guild.id,
+      adapterCreator: interaction.guild.voiceAdapterCreator
+    });
+
+    const resource = createAudioResource(stream.stream, {
+      inputType: stream.type
+    });
+
+    player.play(resource);
+    connection.subscribe(player);
+
+    await interaction.followUp(`▶️ Gram: ${video.title}`);
   }
 });
 
-// 🔧 START
 client.login(TOKEN);
